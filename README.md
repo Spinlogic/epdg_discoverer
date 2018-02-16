@@ -20,6 +20,8 @@ For example, Spain has mcc = 214 and Movistar (Telefónica) has mnc = 07 in Spai
 
 >epdg.epc.mcc214.mnc007.pub.3gppnetwork.org
 
+The script does both, IPv4 and IPv6, resolutions. If the ePDG resolves to multiple addresses, then each IP address is in one line in the output file. 
+
 ## Usage
 >vowifi_scanner <_operatorsfilename_> <_outputfilename_>
 
