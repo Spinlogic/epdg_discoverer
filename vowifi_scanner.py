@@ -1,4 +1,28 @@
 #!/usr/bin/env python
+
+# The MIT License (MIT)
+
+# Copyright (c) 2018 Spinlogic S.L., Albacete, Spain
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in 
+# the Software without restriction, including without limitation the rights to 
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+# of the Software, and to permit persons to whom the Software is furnished to do 
+# so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all 
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+# SOFTWARE.
+
+
 #################################################################
 #
 # Module : vowifi_scanner.py
@@ -21,55 +45,17 @@
 
 """Usage: vowifi_scanner <operators_filename> <output_filename>"""
 
-import argparse, binascii, dns.resolver
-import logging
-logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-from scapy.all import *
-load_contrib('ikev2')
+__version__ = '0.2.0'
 
-__author__ = "Juan Noguera"
-__date__ = "22-jun-2015"
-__lastupdate__ = "16-feb-2018"
-__license__ = "GPL"
+import argparse, binascii, random, dns.resolver
+import ikev2_class as ikev2
+import logging
+import epdg_utils as eutils
+logging.getLogger("scapy3k.runtime").setLevel(logging.ERROR)
+from scapy3k.all import *
 
 # --------------------------// Globals /___________________________
 csv_separator = "\t"
-
-def RandString(length=10):
-    '''Generates a random string of any legth (10 characters by default)'''
-    valid_letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    return ''.join((random.choice(valid_letters) for i in range(length)))
-
-
-def ikelookup(server_address):
-    '''Checks whether it is possible to establish SA to a server.'''
-    key_exchange = binascii.unhexlify('bb41bb41cfaf34e3b3209672aef1c51b9d52919f1781d0b4cd889d4aafe261688776000c3d9031505aefc0186967eaf5a7663725fb102c59c39b7a70d8d9161c3bd0eb445888b5028ea063ba0ae01f5b3f30808a6b6710dc9bab601e4116157d7f58cf835cb633c64abcb3a5c61c223e9332538bfc9f282cb62d1f00f4ee8802')
-    nonce = binascii.unhexlify('8dfcf8384c5c32f1b294c64eab69f98e9d8cf7e7f352971a91ff6777d47dffed')
-    nat_detection_source_ip = binascii.unhexlify('e64c81c4152ad83bd6e035009fbb900406be371f')
-    nat_detection_destination_ip = binascii.unhexlify('28cd99b9fa1267654b53f60887c9c35bcf67a8ff')
-    transform_1 = IKEv2_payload_Transform(next_payload = 'Transform', transform_type = 'Encryption', transform_id = 12, length = 12, key_length = 128) 
-    transform_2 = IKEv2_payload_Transform(next_payload = 'Transform', transform_type = 'PRF', transform_id = 2)
-    transform_3 = IKEv2_payload_Transform(next_payload = 'Transform', transform_type = 'Integrity', transform_id = 2)
-    transform_4 = IKEv2_payload_Transform(next_payload = 'last', transform_type = 'GroupDesc', transform_id = 2)
-    if(':' in server_address):
-        packet = IPv6(dst = server_address)
-    else:
-        packet = IP(dst = server_address, proto = 'udp')
-    packet = packet /\
-           UDP(dport = 500) /\
-           IKEv2(init_SPI = RandString(8), next_payload = 'SA', exch_type = 'IKE_SA_INIT', flags='Initiator') /\
-           IKEv2_payload_SA(next_payload = 'KE', prop = IKEv2_payload_Proposal(trans_nb = 4, trans = transform_1 / transform_2 / transform_3 / transform_4, )) /\
-           IKEv2_payload_KE(next_payload = 'Nonce', group = '1024MODPgr', load = key_exchange) /\
-           IKEv2_payload_Nonce(next_payload = 'Notify', load = nonce) /\
-           IKEv2_payload_Notify(next_payload = 'Notify', type = 16388, load = nat_detection_source_ip) /\
-           IKEv2_payload_Notify(next_payload = 'None', type = 16389, load = nat_detection_destination_ip)
-    ans = sr1(packet, timeout = 3, verbose = 0)
-    if ans == None:
-        return 0
-    else:
-        return len(ans)
-    
-
   
 # def nslookupv4(operator_url):
 #   """performs a dns query for the data contained in operator"""
@@ -138,7 +124,11 @@ def iterateoperatorsfile(fn_mobileoperators, fn_output):
             if len(dns_query_result) > 0 :
                 for record in dns_query_result:
                     responds_to_ping = respondsToPing(record)
-                    sa_resp_length = ikelookup(record)
+                    if(':' in record): # ikev2 class does not support IPv6
+                        sa_resp_length = 0
+                    else:
+                        ikev2_pack = ikev2.epdg_ikev2(record, random.randrange(50000, 55000), 500)
+                        sa_resp_length = ikev2_pack.sa_init()
                     csv_line = mnc + csv_separator + mcc + csv_separator + operator[2] + csv_separator + operator[1] + csv_separator + record + csv_separator + responds_to_ping + csv_separator + str(sa_resp_length)
                     out_file.write(csv_line + "\n")
                     print(csv_line)

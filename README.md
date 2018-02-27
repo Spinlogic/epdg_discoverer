@@ -31,4 +31,5 @@ where:
 * **outputfilename** is the output file. It is also a tab separated values file for which the first four columns are the same as for the operatorfilename, the fifth column is the IP address of the ePDG, the sixth column shows whether the ePDG responds to ICMP echo, and the seventh column shows the packet length to IKEv2_SA_INIT request. This file can easily be imported by all major spreadsheets.
 
 ## Dependencies
-This script uses [scapy](https://github.com/secdev/scapy).
+This script uses [scapy3k](https://github.com/phaethon/scapy). As of February 2018, this code does not work with the official distribution of [scapy](https://github.com/secdev/scapy)
+The Diffie-Hellman key exchange is derived from [diffiehellman](https://github.com/chrisvoncsefalvay/diffiehellman) , but it has been modified to include DH Group 2 and 128 bit keys. 
