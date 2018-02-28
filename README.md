@@ -23,7 +23,7 @@ For example, Spain has mcc = 214 and Movistar (Telefónica) has mnc = 07 in Spai
 The script does both, IPv4 and IPv6, resolutions. If the ePDG resolves to multiple addresses, then each IP address is in one line in the output file. 
 
 ## Usage
->vowifi_scanner <_operatorsfilename_> <_outputfilename_>
+>python3 vowifi_scanner <_operatorsfilename_> <_outputfilename_>
 
 where:
 
@@ -32,4 +32,5 @@ where:
 
 ## Dependencies
 This script uses [scapy3k](https://github.com/phaethon/scapy). As of February 2018, this code does not work with the official distribution of [scapy](https://github.com/secdev/scapy)
+
 The Diffie-Hellman key exchange is derived from [diffiehellman](https://github.com/chrisvoncsefalvay/diffiehellman) , but it has been modified to include DH Group 2 and 128 bit keys. 
