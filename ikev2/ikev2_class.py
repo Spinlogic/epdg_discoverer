@@ -7,6 +7,7 @@ Only IPv4 at this time.
 import binascii, hashlib, socket
 import logging
 from dh.diffiehellman import DiffieHellman
+from .exceptions import PRFError
 import epdg_utils as eutils
 logging.getLogger("scapy3k.runtime").setLevel(logging.ERROR)
 from scapy3k.all import *
@@ -16,6 +17,7 @@ load_contrib('ikev2')
 class epdg_ikev2(object):
     
     def __init__(self, ip_dst, sport, dport):
+        self.prf = 'sha1'
         self.i_spi = binascii.unhexlify(eutils.RandHexString(16))
         self.r_spi = binascii.unhexlify('0' * 16)
         self.dst_addr = ip_dst
@@ -67,16 +69,33 @@ class epdg_ikev2(object):
         assert ans.init_SPI == self.i_spi
         self.r_spi = ans.resp_SPI
         try:
-            self.r_ke = int.from_bytes(ans[IKEv2_payload_KE].load, byteorder='big')
+            r_ke = int.from_bytes(ans[IKEv2_payload_KE].load, byteorder='big')
             self.r_n = ans[IKEv2_payload_Nonce].load
-            print('received nonce: {}'.format(self.r_n))
-            print('received ke: {}'.format(self.r_ke))
-            self.__generateKeys()
+            self.__generateKeys(r_ke)
         except:
             print('Proposal not supported by peer.')
 
-    def __generateKeys(self):
-        # TODO
+
+    def __generateKeys(self, key):
+        self.dh.generate_shared_secret(key)
+        salt = self.dh.shared_secret_bytes
+        if(len(salt) < self.dh.prime.bit_length() // 8):
+            salt = salt.ljust(self.dh.prime.bit_length() // 8, b"\x00")
+        nonce = self.i_n + self.r_n #DEBUG
+        SKEYSEED = hashlib.pbkdf2_hmac(self.prf, self.i_n + self.r_n, salt, 1)
+        S = self.i_n + self.r_n + self.i_spi + self.r_spi
+        K = b''
+        T = b''
+        for n in range(10):
+            T = hashlib.pbkdf2_hmac(self.prf, SKEYSEED, T + S + n.to_bytes(1, byteorder='big'), 1)
+            K += T
+        self.SK_d = K[0:20]
+        self.SK_ai = K[20:40]
+        self.SK_ar = K[40:60]
+        self.SK_ei = K[60:76]
+        self.SK_er = K[76:92]
+        self.SK_pi = K[92:112]
+        self.SK_pr = K[112:132]
         return None
 
     

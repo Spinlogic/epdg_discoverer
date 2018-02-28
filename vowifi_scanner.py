@@ -47,10 +47,9 @@
 
 __version__ = '0.2.0'
 
-import argparse, binascii, random, dns.resolver
-import ikev2_class as ikev2
+import argparse, random, dns.resolver
+import ikev2.ikev2_class as ikev2
 import logging
-import epdg_utils as eutils
 logging.getLogger("scapy3k.runtime").setLevel(logging.ERROR)
 from scapy3k.all import *
 

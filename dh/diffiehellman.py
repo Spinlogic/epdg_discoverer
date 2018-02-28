@@ -111,8 +111,11 @@ class DiffieHellman:
                                  self.__private_key,
                                  self.prime)
 
-        shared_secret_as_bytes = self.shared_secret.to_bytes(self.shared_secret.bit_length() // 8 + 1, byteorder='big')
-
+        length = self.shared_secret.bit_length() // 8
+        if(self.shared_secret.bit_length() % 8 != 0):
+            length += 1
+        shared_secret_as_bytes = self.shared_secret.to_bytes(length, byteorder='big')
+        self.shared_secret_bytes = shared_secret_as_bytes
         _h = sha256()
         _h.update(bytes(shared_secret_as_bytes))
 
