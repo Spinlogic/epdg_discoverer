@@ -63,7 +63,41 @@ class epdg_ikev2(object):
             if(analyse_response):
                 self.__analyseSAInitResponse(IKEv2(ans[UDP].load))
             return len(ans)
-            
+
+    def sa_auth(self, imsi, mcc = '', mnc = ''):
+        '''Sends encrypted IKE_AUTH with content 
+        mcc and mnc only need to be provided when mcc is not equal to the first three digits of the IMSI or the mnc is not equal the 4th and 5th digit of the IMSI.  
+        :param imsi: user IMSI
+        :type string
+        :param mcc: mobile country code
+        :return: length of the response from peer
+        :rtype: int'''
+        __buildIdentity(imsi, mcc, mnc)
+        ip_src = socket.inet_aton(self.src_addr)
+        ip_dst = socket.inet_aton(self.dst_addr)
+        src_port = binascii.unhexlify(format(self.src_port, '04x'))
+        dst_port = binascii.unhexlify(format(self.dst_port, '04x'))
+        transform_1 = IKEv2_payload_Transform(next_payload = 'Transform', transform_type = 'Encryption', transform_id = 12, length = 12, key_length = 128) 
+        transform_2 = IKEv2_payload_Transform(next_payload = 'Transform', transform_type = 'Integrity', transform_id = 2)
+        transform_3 = IKEv2_payload_Transform(next_payload = 'last', transform_type = 'Extended Sequence Number', transform_id = 0)
+        packet = IP(dst = self.dst_addr, proto = 'udp') /\
+            UDP(sport = self.src_port, dport = self.dst_port) /\
+            IKEv2(init_SPI = self.i_spi, next_payload = 'IDi', exch_type = 'IKE_AUTH', flags='Initiator') /\
+            IKEv2_payload_IDi(next_payload = 'IDr', IDtype = 'Email_addr', load = self.i_ID) /\
+            IKEv2_payload(next_payload = 'SA', IDtype = 'Key', load = "ims") /\
+            IKEv2_payload_SA(next_payload = 'Notify', prop = IKEv2_payload_Proposal(trans_nb = 3, trans = transform_1 / transform_2 / transform_3, )) /\
+            IKEv2_payload_Notify(next_payload = 'Notify', type = 16384) /\
+            IKEv2_payload_IDr(next_payload = 'Notify', type = 16394) /\
+            IKEv2_payload_IDr(next_payload = 'Notify', type = 16395) /\
+            IKEv2_payload_IDr(next_payload = 'None', type = 16417) /\
+        ans = sr1(packet, timeout = 3, verbose = 0)
+        if ans == None:
+            return 0
+        else:
+            if(analyse_response):
+                self.__analyseSAInitResponse(IKEv2(ans[UDP].load))
+            return len(ans)
+
 
     def __analyseSAInitResponse(self, ans):
         assert ans.init_SPI == self.i_spi
@@ -97,5 +131,26 @@ class epdg_ikev2(object):
         self.SK_pi = K[92:112]
         self.SK_pr = K[112:132]
         return None
+
+
+    __buildIdentity(self, pimsi, pmcc, pmnc):
+        '''Builds the NAI identity for the user as specified in 3GPP TS23.003 
+        
+        :param imsi: user IMSI
+        :type string
+        :rtype: void'''
+        if(len(pmcc) == 0):
+            mcc = pimsi[0:3]
+        else:
+            mcc = pmcc
+        if(len(pmnc) == 0):
+            mnc = pimsi[len(mcc):len(mcc) + 2]
+        else:
+            mnc = pmnc
+        if(len(mnc) < 3):
+            mnc += '0' * (3 - len(mnc))
+        nai_id = '0{}@nai.epc.mnc{}.mcc{}.3gppnetwork.org'.format(pimsi, mnc, mcc)
+        self.i_ID = nai_id
+        
 
     
