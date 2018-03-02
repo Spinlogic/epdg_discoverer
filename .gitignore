@@ -1,4 +1,4 @@
-
+*.pyc
 dh_test.py
 test_error.py
 test_ike.py

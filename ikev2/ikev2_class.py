@@ -9,8 +9,8 @@ import logging
 from dh.diffiehellman import DiffieHellman
 from .exceptions import PRFError
 import epdg_utils as eutils
-logging.getLogger("scapy3k.runtime").setLevel(logging.ERROR)
-from scapy3k.all import *
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+from scapy.all import *
 load_contrib('ikev2')
 
 
@@ -72,7 +72,7 @@ class epdg_ikev2(object):
         :param mcc: mobile country code
         :return: length of the response from peer
         :rtype: int'''
-        __buildIdentity(imsi, mcc, mnc)
+        self.__buildIdentity(imsi, mcc, mnc)
         ip_src = socket.inet_aton(self.src_addr)
         ip_dst = socket.inet_aton(self.dst_addr)
         src_port = binascii.unhexlify(format(self.src_port, '04x'))
@@ -82,20 +82,20 @@ class epdg_ikev2(object):
         transform_3 = IKEv2_payload_Transform(next_payload = 'last', transform_type = 'Extended Sequence Number', transform_id = 0)
         packet = IP(dst = self.dst_addr, proto = 'udp') /\
             UDP(sport = self.src_port, dport = self.dst_port) /\
-            IKEv2(init_SPI = self.i_spi, next_payload = 'IDi', exch_type = 'IKE_AUTH', flags='Initiator') /\
+            IKEv2(init_SPI = self.i_spi, next_payload = 'IDi', exch_type = 'IKE_AUTH', flags='Initiator', id = 1) /\
             IKEv2_payload_IDi(next_payload = 'IDr', IDtype = 'Email_addr', load = self.i_ID) /\
-            IKEv2_payload(next_payload = 'SA', IDtype = 'Key', load = "ims") /\
-            IKEv2_payload_SA(next_payload = 'Notify', prop = IKEv2_payload_Proposal(trans_nb = 3, trans = transform_1 / transform_2 / transform_3, )) /\
+            IKEv2_payload_IDr(next_payload = 'SA', IDtype = 'Key', load = 'ims') /\
+            IKEv2_payload_SA(next_payload = 'TSi', prop = IKEv2_payload_Proposal(trans_nb = 3, trans = transform_1 / transform_2 / transform_3, )) /\
+            IKEv2_payload_TSi(next_payload = 'TSr', number_of_TSs = 1, traffic_selector = IPv4TrafficSelector(starting_address_v4 = "0.0.0.0", ending_address_v4 = "255.255.255.255")) /\
+            IKEv2_payload_TSr(next_payload = 'Notify', number_of_TSs = 1, traffic_selector = IPv4TrafficSelector(starting_address_v4 = "0.0.0.0", ending_address_v4 = "255.255.255.255")) /\
             IKEv2_payload_Notify(next_payload = 'Notify', type = 16384) /\
-            IKEv2_payload_IDr(next_payload = 'Notify', type = 16394) /\
-            IKEv2_payload_IDr(next_payload = 'Notify', type = 16395) /\
-            IKEv2_payload_IDr(next_payload = 'None', type = 16417) /\
+            IKEv2_payload_Notify(next_payload = 'Notify', type = 16394) /\
+            IKEv2_payload_Notify(next_payload = 'Notify', type = 16395) /\
+            IKEv2_payload_Notify(next_payload = 'None', type = 16417) 
         ans = sr1(packet, timeout = 3, verbose = 0)
         if ans == None:
             return 0
         else:
-            if(analyse_response):
-                self.__analyseSAInitResponse(IKEv2(ans[UDP].load))
             return len(ans)
 
 
@@ -133,7 +133,7 @@ class epdg_ikev2(object):
         return None
 
 
-    __buildIdentity(self, pimsi, pmcc, pmnc):
+    def __buildIdentity(self, pimsi, pmcc, pmnc):
         '''Builds the NAI identity for the user as specified in 3GPP TS23.003 
         
         :param imsi: user IMSI
@@ -148,7 +148,7 @@ class epdg_ikev2(object):
         else:
             mnc = pmnc
         if(len(mnc) < 3):
-            mnc += '0' * (3 - len(mnc))
+            mnc = '0' * (3 - len(mnc)) + mnc
         nai_id = '0{}@nai.epc.mnc{}.mcc{}.3gppnetwork.org'.format(pimsi, mnc, mcc)
         self.i_ID = nai_id
         
