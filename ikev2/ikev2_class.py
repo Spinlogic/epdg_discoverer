@@ -4,11 +4,12 @@ This class handles IKEv2 state machine for interactions with ePDGs.
 Only IPv4 at this time.
 """
 
-import binascii, hashlib, socket
+import binascii, hashlib, socket, request
 import logging
 from dh.diffiehellman import DiffieHellman
 from .exceptions import PRFError
 from cipher.AES_CBC import AES_CBC_Cipher
+ from Cryptodome.Hash import HMAC, SHA1
 import epdg_utils as eutils
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import *
@@ -88,6 +89,7 @@ class epdg_ikev2(object):
             IKEv2(init_SPI = self.i_spi, resp_SPI = self.r_spi, next_payload = 'Encrypted', exch_type = 'IKE_AUTH', flags='Initiator', id = 1) /\
             IKEv2_payload_Encrypted(next_payload = 'IDi', load = encrypted_payload)
         checksum = self.__calcIntegrity(packet[UDP].load)
+        print('Checksum: {}'.format(checksum))
         packet = packet / checksum
         ans = sr1(packet, timeout = 3, verbose = 0)
         if ans == None:
@@ -139,7 +141,10 @@ class epdg_ikev2(object):
         if(len(salt) < self.dh.prime.bit_length() // 8):
             salt = salt.ljust(self.dh.prime.bit_length() // 8, b"\x00")
         nonce = self.i_n + self.r_n #DEBUG
-        SKEYSEED = hashlib.pbkdf2_hmac(self.prf, self.i_n + self.r_n, salt, 1)
+        h = HMAC.new(nonce, digestmode=SHA1)
+        h.update(salt)
+        SKEYSEED = h.hexdigest()
+        #SKEYSEED = hashlib.pbkdf2_hmac(self.prf, self.i_n + self.r_n, salt, 1)
         S = self.i_n + self.r_n + self.i_spi + self.r_spi
         K = b''
         T = b''
