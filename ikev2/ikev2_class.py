@@ -4,12 +4,12 @@ This class handles IKEv2 state machine for interactions with ePDGs.
 Only IPv4 at this time.
 """
 
-import binascii, hashlib, socket, request
+import binascii, hashlib, socket
 import logging
 from dh.diffiehellman import DiffieHellman
 from .exceptions import PRFError
 from cipher.AES_CBC import AES_CBC_Cipher
- from Cryptodome.Hash import HMAC, SHA1
+from Cryptodome.Hash import HMAC, SHA1
 import epdg_utils as eutils
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import *
@@ -19,7 +19,7 @@ load_contrib('ikev2')
 class epdg_ikev2(object):
     
     def __init__(self, ip_dst):
-        self.prf = 'sha1'
+        self.prf = 'SHA1'
         self.i_spi = binascii.unhexlify(eutils.RandHexString(16))
         self.r_spi = binascii.unhexlify('0' * 16)
         self.dst_addr = ip_dst
@@ -27,7 +27,7 @@ class epdg_ikev2(object):
         self.transform_set = {'encrypt': 12, 'prf': 2, 'integr': 2, 'group': 2}
         self.dh = DiffieHellman(group = 2, key_length = 128)
         self.dh.generate_public_key()
-        self.i_n = binascii.unhexlify(eutils.RandHexString(32))
+        self.i_n = binascii.unhexlify(eutils.RandHexString(64))
 
 
     def sa_init(self, sport, dport, analyse_response = False):
@@ -56,7 +56,6 @@ class epdg_ikev2(object):
             IKEv2_payload_Nonce(next_payload = 'Notify', load = self.i_n) /\
             IKEv2_payload_Notify(next_payload = 'Notify', type = 16388, load = nat_det_src) /\
             IKEv2_payload_Notify(next_payload = 'None', type = 16389, load = nat_det_dst)
-        print(packet.show())
         ans = sr1(packet, timeout = 3, verbose = 0)
         if ans == None:
             return 0
@@ -95,8 +94,6 @@ class epdg_ikev2(object):
         if ans == None:
             return 0
         else:
-            if(analyse_response):
-                self.__analyseSAInitResponse(IKEv2(ans[UDP].load))
             return len(ans)
 
     def __buildInnerPacket(self):
@@ -130,27 +127,33 @@ class epdg_ikev2(object):
         try:
             r_ke = int.from_bytes(ans[IKEv2_payload_KE].load, byteorder='big')
             self.r_n = ans[IKEv2_payload_Nonce].load
-            self.__generateKeys(r_ke)
+            try:
+                self.__generateKeys(r_ke)
+            except:
+                print('Error generating keys.')
         except:
             print('Proposal not supported by peer.')
 
 
     def __generateKeys(self, key):
         self.dh.generate_shared_secret(key)
-        salt = self.dh.shared_secret_bytes
-        if(len(salt) < self.dh.prime.bit_length() // 8):
-            salt = salt.ljust(self.dh.prime.bit_length() // 8, b"\x00")
-        nonce = self.i_n + self.r_n #DEBUG
-        h = HMAC.new(nonce, digestmode=SHA1)
-        h.update(salt)
-        SKEYSEED = h.hexdigest()
+        shared_secret = self.dh.shared_secret_bytes
+        if(len(shared_secret) < self.dh.prime.bit_length() // 8):
+            shared_secret = shared_secret.ljust(self.dh.prime.bit_length() // 8, b"\x00")
+        mMac = HMAC.new(self.i_n + self.r_n, digestmod = self.prf)
+        mMac.update(shared_secret)
+        SKEYSEED = binascii.unhexlify(mMac.hexdigest())
         #SKEYSEED = hashlib.pbkdf2_hmac(self.prf, self.i_n + self.r_n, salt, 1)
         S = self.i_n + self.r_n + self.i_spi + self.r_spi
         K = b''
         T = b''
-        for n in range(10):
-            T = hashlib.pbkdf2_hmac(self.prf, SKEYSEED, T + S + n.to_bytes(1, byteorder='big'), 1)
+        for n in range(1, 8):
+            hmac = HMAC.new(SKEYSEED, digestmod = self.prf)
+            #T = hashlib.pbkdf2_hmac(self.prf, SKEYSEED, T + S + n.to_bytes(1, byteorder='big'), 1)
+            hmac.update(T + S + n.to_bytes(1, byteorder='big'))
+            T = hmac.hexdigest()
             K += T
+            delete(hmac)
         self.SK_d = K[0:20]
         self.SK_ai = K[20:40]
         self.SK_ar = K[40:60]
@@ -180,5 +183,3 @@ class epdg_ikev2(object):
         nai_id = '0{}@nai.epc.mnc{}.mcc{}.3gppnetwork.org'.format(pimsi, mnc, mcc)
         self.i_ID = nai_id
         
-
-    
