@@ -9,7 +9,7 @@ import logging
 from dh.diffiehellman import DiffieHellman
 from .exceptions import PRFError
 from cipher.AES_CBC import AES_CBC_Cipher
-from Cryptodome.Hash import HMAC, SHA1
+import Cryptodome.Hash as cryp
 import epdg_utils as eutils
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import *
@@ -27,7 +27,7 @@ class epdg_ikev2(object):
         self.transform_set = {'encrypt': 12, 'prf': 2, 'integr': 2, 'group': 2}
         self.dh = DiffieHellman(group = 2, key_length = 128)
         self.dh.generate_public_key()
-        self.i_n = binascii.unhexlify(eutils.RandHexString(64))
+        self.i_n = binascii.unhexlify(eutils.RandHexString(32))
 
 
     def sa_init(self, sport, dport, analyse_response = False):
@@ -76,9 +76,9 @@ class epdg_ikev2(object):
         ip_src = socket.inet_aton(self.src_addr)
         ip_dst = socket.inet_aton(self.dst_addr)
         packet_to_encrypt = self.__buildInnerPacket()
-        print('Payload to encrypt: {}'.format(packet_to_encrypt[0].show()))
+        #print('Payload to encrypt: {}'.format(packet_to_encrypt[0].show()))
         payload_to_encrypt = raw(packet_to_encrypt[0])
-        print('Raw payload to encrypt: {}'.format(payload_to_encrypt))
+        #print('Raw payload to encrypt: {}'.format(payload_to_encrypt))
         cipher = AES_CBC_Cipher(self.SK_ei)
         encrypted_payload = cipher.encrypt(payload_to_encrypt)
         print('Encrypted payload: {}'.format(encrypted_payload))
@@ -140,27 +140,24 @@ class epdg_ikev2(object):
         shared_secret = self.dh.shared_secret_bytes
         if(len(shared_secret) < self.dh.prime.bit_length() // 8):
             shared_secret = shared_secret.ljust(self.dh.prime.bit_length() // 8, b"\x00")
-        mMac = HMAC.new(self.i_n + self.r_n, digestmod = self.prf)
-        mMac.update(shared_secret)
+        mMac = cryp.HMAC.new(key = self.i_n + self.r_n, msg = shared_secret, digestmod = cryp.SHA1)
         SKEYSEED = binascii.unhexlify(mMac.hexdigest())
-        #SKEYSEED = hashlib.pbkdf2_hmac(self.prf, self.i_n + self.r_n, salt, 1)
         S = self.i_n + self.r_n + self.i_spi + self.r_spi
         K = b''
         T = b''
-        for n in range(1, 8):
-            hmac = HMAC.new(SKEYSEED, digestmod = self.prf)
-            #T = hashlib.pbkdf2_hmac(self.prf, SKEYSEED, T + S + n.to_bytes(1, byteorder='big'), 1)
+        for n in range(1, 15):
+            hmac = cryp.HMAC.new(SKEYSEED, digestmod = cryp.SHA1)
             hmac.update(T + S + n.to_bytes(1, byteorder='big'))
-            T = hmac.hexdigest()
+            T = binascii.unhexlify(hmac.hexdigest())
             K += T
-            delete(hmac)
-        self.SK_d = K[0:20]
-        self.SK_ai = K[20:40]
-        self.SK_ar = K[40:60]
-        self.SK_ei = K[60:76]
-        self.SK_er = K[76:92]
-        self.SK_pi = K[92:112]
-        self.SK_pr = K[112:132]
+            del(hmac)
+        self.SK_d = K[0:64]
+        self.SK_ai = K[64:84]
+        self.SK_ar = K[84:104]
+        self.SK_ei = K[104:120]
+        self.SK_er = K[120:136]
+        self.SK_pi = K[136:200]
+        self.SK_pr = K[200:264]
         return None
 
 

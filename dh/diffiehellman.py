@@ -54,7 +54,7 @@ class DiffieHellman:
 
     def __init__(self,
                  group=2,
-                 key_length=128):
+                 key_length=256):
 
         self.key_length = max(100, key_length)
         self.generator = PRIMES[group]["generator"]
