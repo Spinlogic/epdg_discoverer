@@ -8,10 +8,10 @@ class AES_CBC_Cipher(object):
         self.key = key
 
     def encrypt(self, raw):
-        raw = self._pad(raw)
+        to_encrypt = self._pad(raw)
         iv = Random.new().read(AES.block_size)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return iv + cipher.encrypt(raw)
+        return iv + cipher.encrypt(to_encrypt)
 
     def decrypt(self, enc):
         enc = base64.b64decode(enc)

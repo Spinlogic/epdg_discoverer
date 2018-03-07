@@ -25,7 +25,7 @@ class epdg_ikev2(object):
         self.dst_addr = ip_dst
         self.src_addr = eutils.GetIp()
         self.transform_set = {'encrypt': 12, 'prf': 2, 'integr': 2, 'group': 2}
-        self.dh = DiffieHellman(group = 2, key_length = 128)
+        self.dh = DiffieHellman(group = 2, key_length = 256)
         self.dh.generate_public_key()
         self.i_n = binascii.unhexlify(eutils.RandHexString(32))
 
@@ -76,18 +76,18 @@ class epdg_ikev2(object):
         ip_src = socket.inet_aton(self.src_addr)
         ip_dst = socket.inet_aton(self.dst_addr)
         packet_to_encrypt = self.__buildInnerPacket()
-        print('Payload to encrypt: {}'.format(packet_to_encrypt[0].show()))
+        #print('Payload to encrypt: {}'.format(packet_to_encrypt[0].show()))
         payload_to_encrypt = raw(packet_to_encrypt[0])
         #print('Raw payload to encrypt: {}'.format(payload_to_encrypt))
         cipher = AES_CBC_Cipher(self.SK_ei)
         encrypted_payload = cipher.encrypt(payload_to_encrypt)
-        #print('Encrypted payload: {}'.format(encrypted_payload))
+        print('Encrypted payload: {}'.format(encrypted_payload))
         packet = IP(dst = self.dst_addr, proto = 'udp') /\
             UDP(sport = sport, dport = dport) /\
             binascii.unhexlify('00000000') /\
             IKEv2(init_SPI = self.i_spi, resp_SPI = self.r_spi, next_payload = 'Encrypted', exch_type = 'IKE_AUTH', flags='Initiator', id = 1) /\
             IKEv2_payload_Encrypted(next_payload = 'IDi', load = encrypted_payload)
-        checksum = self.__calcIntegrity(packet[UDP].load)
+        checksum = self.__calcIntegrity(raw(packet[IKEv2]))
         print('Checksum: {}'.format(checksum))
         packet = packet / checksum
         ans = sr1(packet, timeout = 3, verbose = 0)
@@ -118,8 +118,10 @@ class epdg_ikev2(object):
         return payload
 
     def __calcIntegrity(self, raw):
+        # print('Raw Payload for calculation: {}'.format(raw))
         mMac = cryp.HMAC.new(self.SK_ai, msg = raw, digestmod = cryp.SHA1)
-        return binascii.unhexlify(mMac.hexdigest()) 
+        # The actual integrity alg is SHA1-96 NOT SHA1
+        return binascii.unhexlify(mMac.hexdigest()[0:24])
 
     def __analyseSAInitResponse(self, ans):
         assert ans.init_SPI == self.i_spi
@@ -140,31 +142,46 @@ class epdg_ikev2(object):
         shared_secret = self.dh.shared_secret_bytes
         if(len(shared_secret) < self.dh.prime.bit_length() // 8):
             shared_secret = shared_secret.ljust(self.dh.prime.bit_length() // 8, b"\x00")
+        print('DEBUG shared_secret: {}'.format(shared_secret))
         mMac = cryp.HMAC.new(key = self.i_n + self.r_n, msg = shared_secret, digestmod = cryp.SHA1)
         SKEYSEED = binascii.unhexlify(mMac.hexdigest())
         S = self.i_n + self.r_n + self.i_spi + self.r_spi
         K = b''
         T = b''
-        for n in range(1, 15):
+        for n in range(1, 8):
             hmac = cryp.HMAC.new(SKEYSEED, digestmod = cryp.SHA1)
             hmac.update(T + S + n.to_bytes(1, byteorder='big'))
             T = binascii.unhexlify(hmac.hexdigest())
             K += T
             del(hmac)
-        self.SK_d = K[0:64]
-        self.SK_ai = K[64:84]
-        self.SK_ar = K[84:104]
-        self.SK_ei = K[104:120]
-        self.SK_er = K[120:136]
-        self.SK_pi = K[136:200]
-        self.SK_pr = K[200:264]
+        prf_len = 20 # SHA1
+        integrity_len = 12  # SHA1-96
+        encrypt_len = 16    # AES (128 bit keys are negotiated)
+        index = 0
+        self.SK_d = K[index:prf_len]
+        index += prf_len
+        self.SK_ai = K[index:index + integrity_len]
+        index += integrity_len
+        self.SK_ar = K[index:index + integrity_len]
+        index += integrity_len
+        self.SK_ei = K[index:index + encrypt_len]
+        index += encrypt_len
+        self.SK_er = K[index:index + encrypt_len]
+        index += encrypt_len
+        self.SK_pi = K[index:index + prf_len]
+        index += prf_len
+        self.SK_pr = K[index:index + prf_len]
         return None
 
 
-    def __buildIdentity(self, pimsi, pmcc, pmnc):
+    def __buildIdentity(self, pimsi, pmcc = '', pmnc = ''):
         '''Builds the NAI identity for the user as specified in 3GPP TS23.003 
         
         :param imsi: user IMSI
+        :type string
+        :param pmcc: Mobile Country Code
+        :type string
+        :param pmnc: Mobile Network Code
         :type string
         :rtype: void'''
         if(len(pmcc) == 0):

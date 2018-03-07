@@ -9,5 +9,6 @@ len = ike_instance.sa_init(51234, 500, True)
 #len = 101
 if(len > 100):
     print('Sending IKE_AUTH')
-    ike_instance.sa_auth(51234, 4500, "232019876543210")
+    ike_instance.sa_auth(51237, 4500, "232012230093690")
+    #ike_instance.sa_auth(51234, 4500, "232019876543210")
 print('END')
