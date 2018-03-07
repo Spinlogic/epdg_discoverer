@@ -76,12 +76,12 @@ class epdg_ikev2(object):
         ip_src = socket.inet_aton(self.src_addr)
         ip_dst = socket.inet_aton(self.dst_addr)
         packet_to_encrypt = self.__buildInnerPacket()
-        #print('Payload to encrypt: {}'.format(packet_to_encrypt[0].show()))
+        print('Payload to encrypt: {}'.format(packet_to_encrypt[0].show()))
         payload_to_encrypt = raw(packet_to_encrypt[0])
         #print('Raw payload to encrypt: {}'.format(payload_to_encrypt))
         cipher = AES_CBC_Cipher(self.SK_ei)
         encrypted_payload = cipher.encrypt(payload_to_encrypt)
-        print('Encrypted payload: {}'.format(encrypted_payload))
+        #print('Encrypted payload: {}'.format(encrypted_payload))
         packet = IP(dst = self.dst_addr, proto = 'udp') /\
             UDP(sport = sport, dport = dport) /\
             binascii.unhexlify('00000000') /\
@@ -118,8 +118,8 @@ class epdg_ikev2(object):
         return payload
 
     def __calcIntegrity(self, raw):
-        isha1 = hashlib.sha1(raw)
-        return binascii.unhexlify(isha1.hexdigest())
+        mMac = cryp.HMAC.new(self.SK_ai, msg = raw, digestmod = cryp.SHA1)
+        return binascii.unhexlify(mMac.hexdigest()) 
 
     def __analyseSAInitResponse(self, ans):
         assert ans.init_SPI == self.i_spi

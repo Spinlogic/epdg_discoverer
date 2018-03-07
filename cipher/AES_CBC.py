@@ -20,8 +20,8 @@ class AES_CBC_Cipher(object):
         return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
 
     def _pad(self, s):
-        pad_len = AES.block_size - len(s) % AES.block_size
-        padding = format(AES.block_size - len(s) % AES.block_size, '02x') * pad_len
+        pad_len = (AES.block_size - len(s) % AES.block_size) - 1
+        padding = format(pad_len, '02x') * (pad_len + 1)
         return s + binascii.unhexlify(padding)
 
     @staticmethod
