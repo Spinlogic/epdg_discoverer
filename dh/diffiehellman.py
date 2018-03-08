@@ -93,14 +93,12 @@ class DiffieHellman:
                               self.prime)
 
     @requires_private_key
-    def generate_shared_secret(self, other_public_key, echo_return_key=False):
+    def generate_shared_secret(self, other_public_key):
         """
         Generates shared secret from the other party's public key.
 
         :param other_public_key: Other party's public key
         :type other_public_key: int
-        :param echo_return_key: Echo return shared key
-        :type bool
         :return: void
         :rtype: void
         """
@@ -116,11 +114,4 @@ class DiffieHellman:
             length += 1
         shared_secret_as_bytes = self.shared_secret.to_bytes(length, byteorder='big')
         self.shared_secret_bytes = shared_secret_as_bytes
-        _h = sha256()
-        _h.update(bytes(shared_secret_as_bytes))
-
-        self.shared_key = _h.hexdigest()
-        #self.shared_key = shared_secret_as_bytes
-
-        if echo_return_key is True:
-            return self.shared_key
+       

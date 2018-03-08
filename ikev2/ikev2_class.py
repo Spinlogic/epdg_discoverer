@@ -121,7 +121,7 @@ class epdg_ikev2(object):
         # print('Raw Payload for calculation: {}'.format(raw))
         mMac = cryp.HMAC.new(self.SK_ai, msg = raw, digestmod = cryp.SHA1)
         # The actual integrity alg is SHA1-96 NOT SHA1
-        return binascii.unhexlify(mMac.hexdigest()[0:24])
+        return mMac.digest()[0:12]
 
     def __analyseSAInitResponse(self, ans):
         assert ans.init_SPI == self.i_spi
@@ -144,14 +144,14 @@ class epdg_ikev2(object):
             shared_secret = shared_secret.ljust(self.dh.prime.bit_length() // 8, b"\x00")
         print('DEBUG shared_secret: {}'.format(shared_secret))
         mMac = cryp.HMAC.new(key = self.i_n + self.r_n, msg = shared_secret, digestmod = cryp.SHA1)
-        SKEYSEED = binascii.unhexlify(mMac.hexdigest())
+        SKEYSEED = mMac.digest()
         S = self.i_n + self.r_n + self.i_spi + self.r_spi
         K = b''
         T = b''
         for n in range(1, 8):
             hmac = cryp.HMAC.new(SKEYSEED, digestmod = cryp.SHA1)
             hmac.update(T + S + n.to_bytes(1, byteorder='big'))
-            T = binascii.unhexlify(hmac.hexdigest())
+            T = hmac.digest()
             K += T
             del(hmac)
         prf_len = 20 # SHA1
