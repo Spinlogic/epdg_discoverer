@@ -52,7 +52,7 @@ class epdg_ikev2(object):
             UDP(sport = sport, dport = dport) /\
             IKEv2(init_SPI = self.i_spi, next_payload = 'SA', exch_type = 'IKE_SA_INIT', flags='Initiator') /\
             IKEv2_payload_SA(next_payload = 'KE', prop = IKEv2_payload_Proposal(trans_nb = 4, trans = transform_1 / transform_2 / transform_3 / transform_4, )) /\
-            IKEv2_payload_KE(next_payload = 'Nonce', group = '1024MODPgr', load = binascii.unhexlify(format(self.dh.public_key, '0256x'))) /\
+            IKEv2_payload_KE(next_payload = 'Nonce', group = '1024MODPgr', load = self.dh.public_key_bytes) /\
             IKEv2_payload_Nonce(next_payload = 'Notify', load = self.i_n) /\
             IKEv2_payload_Notify(next_payload = 'Notify', type = 16388, load = nat_det_src) /\
             IKEv2_payload_Notify(next_payload = 'None', type = 16389, load = nat_det_dst)
@@ -81,10 +81,10 @@ class epdg_ikev2(object):
         #print('Raw payload to encrypt: {}'.format(payload_to_encrypt))
         cipher = AES_CBC_Cipher(self.SK_ei)
         encrypted_payload = cipher.encrypt(payload_to_encrypt)
-        print('Encrypted payload: {}'.format(encrypted_payload))
+        print('DEBUG Encrypted payload: {}'.format(encrypted_payload))
         packet = IP(dst = self.dst_addr, proto = 'udp') /\
             UDP(sport = sport, dport = dport) /\
-            binascii.unhexlify('00000000') /\
+            (b'\x00' * 4) /\
             IKEv2(init_SPI = self.i_spi, resp_SPI = self.r_spi, next_payload = 'Encrypted', exch_type = 'IKE_AUTH', flags='Initiator', id = 1) /\
             IKEv2_payload_Encrypted(next_payload = 'IDi', load = encrypted_payload)
         checksum = self.__calcIntegrity(raw(packet[IKEv2]))
@@ -118,7 +118,7 @@ class epdg_ikev2(object):
         return payload
 
     def __calcIntegrity(self, raw):
-        # print('Raw Payload for calculation: {}'.format(raw))
+        print('Raw Payload for calculation: {}'.format(raw))
         mMac = cryp.HMAC.new(self.SK_ai, msg = raw, digestmod = cryp.SHA1)
         # The actual integrity alg is SHA1-96 NOT SHA1
         return mMac.digest()[0:12]
@@ -138,24 +138,22 @@ class epdg_ikev2(object):
 
 
     def __generateKeys(self, key):
-        self.dh.generate_shared_secret(key)
-        shared_secret = self.dh.shared_secret_bytes
-        if(len(shared_secret) < self.dh.prime.bit_length() // 8):
-            shared_secret = shared_secret.ljust(self.dh.prime.bit_length() // 8, b"\x00")
-        print('DEBUG shared_secret: {}'.format(shared_secret))
-        mMac = cryp.HMAC.new(key = self.i_n + self.r_n, msg = shared_secret, digestmod = cryp.SHA1)
+        self.dh.generate_shared_secret(key)        
+        mMac = cryp.HMAC.new(key = self.i_n + self.r_n, msg = self.dh.shared_secret_bytes, digestmod = cryp.SHA1)
         SKEYSEED = mMac.digest()
         S = self.i_n + self.r_n + self.i_spi + self.r_spi
         K = b''
         T = b''
-        for n in range(1, 8):
+        for n in range(1, 10):
+            print('Round {} \tT = {}\tseed = {}'.format(n, T, T + S + n.to_bytes(1, byteorder='big')))
             hmac = cryp.HMAC.new(SKEYSEED, digestmod = cryp.SHA1)
             hmac.update(T + S + n.to_bytes(1, byteorder='big'))
             T = hmac.digest()
             K += T
             del(hmac)
-        prf_len = 20 # SHA1
-        integrity_len = 12  # SHA1-96
+        # KEY lengths in bytes
+        prf_len = 20 # RFC7296 -> key length for SK_d, SK_pi and SK_py must be the length of the output of the underlying hash function (SHA1 = 20 bytes)
+        integrity_len = 20  # SHA1-96 key length as per RFC2404
         encrypt_len = 16    # AES (128 bit keys are negotiated)
         index = 0
         self.SK_d = K[index:prf_len]
@@ -171,6 +169,27 @@ class epdg_ikev2(object):
         self.SK_pi = K[index:index + prf_len]
         index += prf_len
         self.SK_pr = K[index:index + prf_len]
+        
+        #DEBUG Prints
+        print('\n\n-------------------------- BEGIN KEY GENERATION MATERIAL ---------------------------\n')
+        print('KE_i: {}\nbytes: {}\n'.format(self.dh.public_key, self.dh.public_key_bytes))
+        print('KE_r: {}\nbytes: {}\n'.format(key, key.to_bytes(128, byteorder='big')))
+        print('Shared_secret: {}\nbytes: {}\n'.format(self.dh.shared_secret, self.dh.shared_secret_bytes))
+        print('DH Modulus: {}\nbytes: {}\n'.format(self.dh.prime, self.dh.prime.to_bytes(self.dh.prime.bit_length() // 8, byteorder='big')))
+        print('Ni: {}\n'.format(self.i_n))
+        print('Nr: {}\n'.format(self.r_n))
+        print('SPIi: {}\n'.format(self.i_spi))
+        print('SPIr: {}\n'.format(self.r_spi))
+        print('SKEYSEED: {}\n'.format(SKEYSEED))
+        print('Keys string: {}\n'.format(K))
+        print('SK_d:  {}\n'.format(self.SK_d))
+        print('SK_ai: {}\n'.format(self.SK_ai))
+        print('SK_ar: {}\n'.format(self.SK_ar))
+        print('SK_ei: {}\n'.format(self.SK_ei))
+        print('SK_er: {}\n'.format(self.SK_er))
+        print('SK_pi: {}\n'.format(self.SK_pi))
+        print('SK_pr: {}\n'.format(self.SK_pr))
+        print('--------------------------- END KEY GENERATION MATERIAL ----------------------------\n\n')
         return None
 
 

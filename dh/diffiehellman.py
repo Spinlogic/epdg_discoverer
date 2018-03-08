@@ -91,6 +91,7 @@ class DiffieHellman:
         self.public_key = pow(self.generator,
                               self.__private_key,
                               self.prime)
+        self.public_key_bytes = self.public_key.to_bytes(self.prime.bit_length() // 8, byteorder='big')
 
     @requires_private_key
     def generate_shared_secret(self, other_public_key):
@@ -113,5 +114,7 @@ class DiffieHellman:
         if(self.shared_secret.bit_length() % 8 != 0):
             length += 1
         shared_secret_as_bytes = self.shared_secret.to_bytes(length, byteorder='big')
+        if(len(shared_secret_as_bytes) < self.prime.bit_length() // 8):
+            shared_secret_as_bytes = shared_secret_as_bytes.ljust(self.prime.bit_length() // 8, b"\x00")
         self.shared_secret_bytes = shared_secret_as_bytes
        
