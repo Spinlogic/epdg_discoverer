@@ -1,0 +1,88 @@
+@@ -356,6 +356,41 @@ IPProtocolIDs = {
+    142 : "Robust Header Compression",
+}
+
+IKEv2_CP_types = {
+	1: "CFG_REQUEST",
+	2: "CFG_REPLY",
+	3: "CFG_SET",
+	4: "CFG_ACK"
+}
+
+IKEv2_CP_attribute_types = { 
+    1: "INTERNAL_IP4_ADDRESS",
+    2: "INTERNAL_IP4_NETMASK",
+    3: "INTERNAL_IP4_DNS",
+    4: "INTERNAL_IP4_NBNS",
+    6: "INTERNAL_IP4_DHCP",
+    7: "APPLICATION_VERSION",
+    8: "INTERNAL_IP6_ADDRESS",
+    10: "INTERNAL_IP6_DNS",
+    12: "INTERNAL_IP6_DHCP",
+    13: "INTERNAL_IP4_SUBNET",
+    14: "SUPPORTED_ATTRIBUTES",
+    15: "INTERNAL_IP6_SUBNET",
+	16: "MIP6_HOME_PREFIX",
+	17: "INTERNAL_IP6_LINK",
+	18: "INTERNAL_IP6_PREFIX",
+	19: "HOME_AGENT_ADDRESS",
+	20: "P_CSCF_IP4_ADDRESS",
+	21: "P_CSCF_IP6_ADDRESS",
+	22: "FTT_KAT",
+	23: "EXTERNAL_SOURCE_IP4_NAT_INFO",
+	24: "TIMEOUT_PERIOD_FOR_LIVENESS_CHECK",
+	25: "INTERNAL_DNS_DOMAIN",
+	26: "INTERNAL_DNSSEC_TA",
+	16389: "P_CSCF_IP4_ADDRESS_ALT",	# widely used instead of 20 
+	16390: "P_CSCF_IP6_ADDRESS_ALT"		# widely used instead of 21
+}
+
+# the name 'IKEv2TransformTypes' is actually a misnomer (since the table 
+# holds info for all IKEv2 Attribute types, not just transforms, but we'll 
+# keep it for backwards compatibility... for now at least
+@ -443,7 +478,7 @@ class IKEv2_Key_Length_Attribute(IntField):
+        return IntField.i2h(self, pkt, x & 0xFFFF)
+
+    def h2i(self, pkt, x):
+        return IntField.h2i(self, pkt, x if x !=None else 0 | 0x800E0000)
+        return IntField.h2i(self, pkt, x | 0x800E0000 if x !=None else 0 | 0x800E0000)
+
+class IKEv2_payload_Transform(IKEv2_class):
+    name = "IKE Transform"
+@ -682,7 +717,7 @@ class IKEv2_payload_Encrypted(IKEv2_class):
+    fields_desc = [
+        ByteEnumField("next_payload",None,IKEv2_payload_type),
+        ByteField("res",0),
+        FieldLenField("length",None,"load","H",adjust=lambda pkt,x:x+4),
+        FieldLenField("length",None,"load","H",adjust=lambda pkt,x:x+4), 
+        StrLenField("load","",length_from=lambda x:x.length-4),
+        ]
+
+@ -750,6 +785,27 @@ class IKEv2_payload_CERT_STR(IKEv2_payload_CERT):
+        ByteEnumField("cert_type",0,IKEv2CertificateEncodings),
+        StrLenField("cert_data","",length_from=lambda x:x.length-5),
+        ]
+		
+class CP_Attribute(IKEv2_class):
+    name = "IKEv2 Attribute"
+    fields_desc = [
+		BitField("R", 0, 1),
+		BitEnumField("attr_type",1, 15, IKEv2_CP_attribute_types),
+		FieldLenField("length",None,"value","H"),
+		PacketField("value", "", Raw)
+        ]
+	
+class IKEv2_payload_CP(IKEv2_class):
+    name = "IKEv2 CP"
+    overload_fields = { IKEv2: { "next_payload":47 }}
+    fields_desc = [
+        ByteEnumField("next_payload",None,IKEv2_payload_type),
+        ByteField("res",0),
+		FieldLenField("length",None,"attribs","H", adjust=lambda pkt,x:x+8),
+        ByteEnumField("cfg_type",None,IKEv2_CP_types),
+        X3BytesField("res2",0),
+        PacketLenField("attribs",conf.raw_layer(),CP_Attribute,length_from=lambda x:x.length-4)
+        ]
+
+IKEv2_payload_type_overload = {}
+for i, payloadname in enumerate(IKEv2_payload_type):

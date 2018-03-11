@@ -14,10 +14,9 @@ class AES_CBC_Cipher(object):
         return iv + cipher.encrypt(to_encrypt)
 
     def decrypt(self, enc):
-        enc = base64.b64decode(enc)
         iv = enc[:AES.block_size]
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
+        return self._unpad(cipher.decrypt(enc[AES.block_size:]))
 
     def _pad(self, s):
         pad_len = (AES.block_size - len(s) % AES.block_size) - 1

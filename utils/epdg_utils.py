@@ -6,11 +6,13 @@ Set of helper functions.
 import random, socket
 
 def RandHexString(length = 16):
-    '''Generates a random hex string of any legth (16 characters by default)'''
+    '''Generates a random hex string of any legth (16 characters by default)
+    :param length: number of hex digits
+    :type integer
+    :rtype: string
+    '''
     valid_letters='0123456789abcdef'
     return ''.join((random.choice(valid_letters) for i in range(length)))
-
-
 
 def GetIp():
     '''Gets the IP address of the interface for default route.'''
@@ -25,3 +27,17 @@ def GetIp():
     finally:
         s.close()
     return IP
+
+def GenerateRandomIMSI(mcc='',mnc=''):
+    '''Generates a ransom IMSI with the passed mcc and mnc.
+
+    :param mcc: Mobile Country Code
+    :type string
+    :param mnc: Mobile Network Code
+    :type string
+    :rtype: string
+    '''
+    valid_letters='0123456789'
+    imsi = mcc + mnc
+    return imsi.join((random.choice(valid_letters) for i in range(12 - len(imsi))))
+    
