@@ -10,7 +10,7 @@ from dh.diffiehellman import DiffieHellman
 from .exceptions import PRFError
 from cipher.AES_CBC import AES_CBC_Cipher
 import Cryptodome.Hash as cryp
-import epdg_utils as eutils
+import utils.epdg_utils as eutils
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import *
 load_contrib('ikev2')
@@ -179,7 +179,7 @@ class epdg_ikev2(object):
         index += prf_len
         self.SK_pr = K[index:index + prf_len]
         
-        print_keys = False
+        print_keys = True
         if(print_keys):
             #DEBUG Prints
             print('\n\n-------------------------- BEGIN KEY GENERATION MATERIAL ---------------------------\n')

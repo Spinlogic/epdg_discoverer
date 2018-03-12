@@ -8,10 +8,10 @@ from scapy.all import *
 load_contrib('ikev2')
 from cipher.AES_CBC import AES_CBC_Cipher
 
-SK_ei = b'\xc2\x12\xdb\x0c\xa7tj7\xaf;\r>\xf1{C\xf1'
-SK_er = b'\x17m\xb3\xd8\xc5\x10\x80\xb8 ~\xdcr\xbf8\xd5x'
+SK_ei = b'K\xc2\x97\xc8AT8\xef\x19\x9b8nD\xf5{\x17'
+SK_er = b'ACR\xb6O\xe6XF\x1d\xc1\xeb\xa9\xaf\xf4\x1b\x92'
 
-packet = rdpcap('ikev2_auth.pcap')
+packet = rdpcap('../test2.pcap')
 ike_req = IKEv2(raw(packet[2][ESP])[4:])
 ike_res = IKEv2(raw(packet[3][ESP])[4:])
 
