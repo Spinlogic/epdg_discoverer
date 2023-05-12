@@ -214,7 +214,7 @@
 730 10 	Entel 	Chile
 730 02 	movistar 	Chile
 730 04 	Nextel 	Chile
-730 08 	VTR Móvil 	Chile
+730 08 	VTR MÃ³vil 	Chile
 730 99 	Will 	Chile
 460 06 	(unknown) 	China
 460 00 	China Mobile 	China
@@ -389,7 +389,6 @@
 620 03 	tiGO 	Ghana
 266 06 	CTS Mobile 	Gibraltar (United Kingdom)
 266 01 	GibTel 	Gibraltar (United Kingdom)
-202 01 	Cosmote 	Greece
 202 05 	Vodafone 	Greece
 202 09 	Wind 	Greece
 202 10 	Wind 	Greece
@@ -479,7 +478,7 @@
 216 70 	Vodafone 	Hungary
 274 07 	IceCell 	Iceland
 274 11 	Nova 	Iceland
-274 06 	Núll níu ehf 	Iceland
+274 06 	NÃºll nÃ­u ehf 	Iceland
 274 08 	On-waves 	Iceland
 274 01 	Siminn 	Iceland
 274 12 	Tal 	Iceland
@@ -514,7 +513,8 @@
 404 31 	Airtel 	India
 404 40 	Airtel 	India
 404 45 	Airtel 	India
-404 49 	Airtel 	India
+404 49 	Airtel 	In404 49 	Airtel 	India
+dia
 404 70 	Airtel 	India
 404 94 	Airtel 	India
 404 95 	Airtel 	India
@@ -543,8 +543,8 @@
 404 54 	BSNL 	India
 404 55 	BSNL 	India
 404 57 	BSNL 	India
-404 58 	BSNL 	India
-404 59 	BSNL 	India
+404 58 	BSNL 	IndiaIndia
+404 59 	BSNL 	Ind
 404 64 	BSNL 	India
 404 71 	BSNL 	India
 404 73 	BSNL 	India
@@ -553,17 +553,15 @@
 404 76 	BSNL 	India
 404 77 	BSNL 	India
 404 80 	BSNL 	India
-404 81 	BSNL 	India
+404 81 	BSNL 	Indi
 404 62 	BSNL J&K 	India
 404 72 	BSNL Kerala 	India
-404 66 	BSNL Maharashtra & Goa 	India
 404 78 	BTA Cellcom 	India
 404 48 	Dishnet Wireless 	India
 404 82 	Escorts 	India
 404 87 	Escorts Telecom 	India
-404 88 	Escorts Telecom 	India
 404 89 	Escorts Telecom 	India
-404 11 	Essar / Sterling Cellular 	India
+404 11 	Essar / Sterling Cellular 	Indi
 405912 	Etisalat DB(cheers) 	India
 405913 	Etisalat DB(cheers) 	India
 405914 	Etisalat DB(cheers) 	India
@@ -572,7 +570,7 @@
 404 86 	Hutchinson Essar South 	India
 404 13 	Hutchison Essar South 	India
 404 84 	Hutchison Essar South 	India
-404 19 	IDEA 	India
+404 19 	IDEA 	Indi
 405799 	IDEA 	India
 405845 	IDEA 	India
 405848 	IDEA 	India
@@ -803,12 +801,10 @@
 440 93 	Vodafone 	Japan
 440 94 	Vodafone 	Japan
 440 95 	Vodafone 	Japan
-440 96 	Vodafone 	Japan
 440 97 	Vodafone 	Japan
 440 98 	Vodafone 	Japan
 416 77 	Orange 	Jordan
 416 03 	Umniah 	Jordan
-416 02 	XPress Telecom 	Jordan
 416 01 	Zain 	Jordan
 401 01 	Beeline 	Kazakhstan
 401 07 	Dalacom 	Kazakhstan
@@ -819,7 +815,6 @@
 639 02 	Safaricom 	Kenya
 639 05 	yu 	Kenya
 639 03 	Zain 	Kenya
-545 09 	Kiribati Frigate 	Kiribati
 419 04 	Viva 	Kuwait
 419 03 	Wataniya 	Kuwait
 419 02 	Zain 	Kuwait
@@ -918,8 +913,8 @@
 259 03 	IDC 	Moldova
 259 02 	Moldcell 	Moldova
 259 01 	Orange 	Moldova
-259 05 	Unité 	Moldova
-259 99 	Unité 	Moldova
+259 05 	UnitÃ© 	Moldova
+259 99 	UnitÃ© 	Moldova
 212 01 	Office des Telephones 	Monaco
 428 98 	G.Mobile 	Mongolia
 428 99 	MobiCom 	Mongolia
@@ -932,7 +927,7 @@
 297 01 	Telenor Montenegro 	Montenegro
 604 01 	IAM 	Morocco
 604 05 	INWI 	Morocco
-604 00 	Méditel 	Morocco
+604 00 	MÃ©ditel 	Morocco
 643 01 	mCel 	Mozambique
 643 04 	Vodacom 	Mozambique
 414 01 	MPT 	Myanmar
@@ -944,7 +939,7 @@
 429 01 	Nepal Telecom 	Nepal
 429 04 	SmartCell 	Nepal
 429 03 	United Telecom Limited 	Nepal
-362 94 	Bayòs 	Netherlands Antilles (Netherlands)
+362 94 	BayÃ²s 	Netherlands Antilles (Netherlands)
 362 69 	Digicel 	Netherlands Antilles (Netherlands)
 362 95 	MIO 	Netherlands Antilles (Netherlands)
 362 51 	Telcell 	Netherlands Antilles (Netherlands)
@@ -1029,7 +1024,7 @@
 260 03 	Orange 	Poland
 260 06 	Play 	Poland
 260 01 	Plus 	Poland
-260 05 	Polska Telefonia Komórkowa Centertel Sp. z o.o. 	Poland
+260 05 	Polska Telefonia KomÃ³rkowa Centertel Sp. z o.o. 	Poland
 260 07 	Premium Internet 	Poland
 260 13 	Sferia 	Poland
 260 02 	T-mobile 	Poland
@@ -1170,7 +1165,7 @@
 450 06 	LGU+ 	South Korea
 450 03 	Power 017 	South Korea
 450 05 	SK Telecom 	South Korea
-214 23 	BARABLU MÓVIL ESPANA 	Spain
+214 23 	BARABLU MÃ“VIL ESPANA 	Spain
 214 15 	BT 	Spain
 214 22 	DigiMobil 	Spain
 214 24 	Eroski 	Spain
