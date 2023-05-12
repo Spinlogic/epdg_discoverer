@@ -21,9 +21,9 @@ class epdg_ikev2(object):
         self.dst_addr = ip_dst
         self.dst_port = dport
         self.src_addr = eutils.GetIp()
-        self.src_port = sport
-        self.transform_set = {'encrypt': 12, 'prf': 2, 'integr': 2, 'group': 2}
-        self.dh = DiffieHellman(group = 2, key_length = 128)
+        self.src_port = xport
+        self.transform_set = {'encrypt': 12, 'prf': 1, 'integr': 1, 'group': 1}
+        self.dh = DiffieHellman(group = 1, key_length = 128)
         self.dh.generate_public_key()
         self.i_n = binascii.unhexlify(eutils.RandHexString(32))
 
